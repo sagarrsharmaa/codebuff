@@ -2,9 +2,10 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Check, X } from 'lucide-react';
+import { Check, X, Loader2 } from 'lucide-react';
 import { SectionWrapper } from '@/components/primitives/SectionWrapper';
 import { MagneticButton } from '@/components/primitives/MagneticButton';
+import { checkoutAction } from '@/lib/stripe-actions';
 
 interface Tier {
   name: string;
@@ -33,7 +34,7 @@ const tiers: Tier[] = [
       { name: 'Custom integrations', included: false },
       { name: 'SSO / SAML', included: false },
     ],
-    cta: 'Start free trial',
+    cta: 'Choose Starter',
   },
   {
     name: 'Pro',
@@ -50,7 +51,7 @@ const tiers: Tier[] = [
       { name: 'Custom integrations', included: true },
       { name: 'SSO / SAML', included: false },
     ],
-    cta: 'Start free trial',
+    cta: 'Choose Pro',
     highlighted: true,
     badge: 'Most Popular',
   },
@@ -75,6 +76,25 @@ const tiers: Tier[] = [
 
 export function PricingSection() {
   const [yearly, setYearly] = useState(false);
+  const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+
+  async function handleCheckout(plan: string) {
+    if (plan === 'enterprise') {
+      window.location.href = 'mailto:sales@codebuff.com';
+      return;
+    }
+
+    setLoadingPlan(plan);
+
+    try {
+      const formData = new FormData();
+      formData.set('plan', plan);
+      formData.set('billing', yearly ? 'yearly' : 'monthly');
+      await checkoutAction(formData);
+    } catch {
+      setLoadingPlan(null);
+    }
+  }
 
   return (
     <SectionWrapper id="pricing" fullHeight={false} className="py-24 md:py-32">
@@ -120,7 +140,6 @@ export function PricingSection() {
           Yearly
         </span>
 
-        {/* Save badge */}
         <AnimatePresence>
           {yearly && (
             <motion.span
@@ -140,6 +159,8 @@ export function PricingSection() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 max-w-5xl mx-auto">
         {tiers.map((tier) => {
           const price = yearly ? tier.yearlyPrice : tier.monthlyPrice;
+          const planKey = tier.name.toLowerCase();
+          const isEnterprise = planKey === 'enterprise';
 
           return (
             <motion.div
@@ -158,7 +179,6 @@ export function PricingSection() {
                   : 'glass border border-border-subtle'
               }`}
             >
-              {/* Hover gradient border — subtle box-shadow on hover */}
               <motion.div
                 className="absolute inset-0 rounded-xl pointer-events-none opacity-0"
                 whileHover={{ opacity: 1 }}
@@ -169,7 +189,6 @@ export function PricingSection() {
                 }}
               />
 
-              {/* Badge */}
               {tier.badge && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                   <span className="font-body text-[11px] text-text-inverse bg-accent-purple rounded-full px-4 py-1 font-medium whitespace-nowrap">
@@ -178,7 +197,6 @@ export function PricingSection() {
                 </div>
               )}
 
-              {/* Card content */}
               <div className="relative z-10 flex flex-col flex-1">
                 <h3 className="font-display text-xl font-bold text-text-primary">
                   {tier.name}
@@ -197,7 +215,9 @@ export function PricingSection() {
                   >
                     {price}
                   </motion.span>
-                  <span className="font-body text-sm text-text-muted">/mo</span>
+                  <span className="font-body text-sm text-text-muted">
+                    {isEnterprise ? '' : '/mo'}
+                  </span>
                 </div>
 
                 <ul className="space-y-3 mb-8 flex-1">
@@ -222,9 +242,18 @@ export function PricingSection() {
                 <MagneticButton
                   variant={tier.highlighted ? 'primary' : 'ghost'}
                   size="lg"
-                  className="w-full"
+                  className="w-full justify-center"
+                  onClick={() => handleCheckout(planKey)}
+                  disabled={loadingPlan === planKey}
                 >
-                  {tier.cta}
+                  {loadingPlan === planKey ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Redirecting...
+                    </>
+                  ) : (
+                    tier.cta
+                  )}
                 </MagneticButton>
               </div>
             </motion.div>

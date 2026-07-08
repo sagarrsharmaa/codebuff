@@ -52,7 +52,17 @@ export function LoginForm() {
       if (result?.error) {
         setError('Invalid email or password. Please try again.');
       } else {
-        router.push('/dashboard');
+        // Redirect to plan selection if coming from checkout flow
+        const redirectTo = searchParams.get('redirect') || '/dashboard';
+        const plan = searchParams.get('plan');
+        const billing = searchParams.get('billing');
+        let url = redirectTo;
+        const params = new URLSearchParams();
+        if (plan) params.set('plan', plan);
+        if (billing) params.set('billing', billing);
+        const qs = params.toString();
+        if (qs) url += (url.includes('?') ? '&' : '?') + qs;
+        router.push(url);
         router.refresh();
       }
     } catch {
@@ -203,7 +213,10 @@ export function LoginForm() {
       {/* Google OAuth */}
       <button
         type="button"
-        onClick={() => signIn('google', { callbackUrl: '/dashboard' })}
+        onClick={() => {
+          const redirectTo = searchParams.get('redirect') || '/dashboard';
+          signIn('google', { callbackUrl: redirectTo });
+        }}
         disabled={isLoading}
         className="w-full glass glass-hover rounded-full px-6 py-3 font-body text-sm font-medium text-text-primary flex items-center justify-center gap-3 transition-all duration-200 cursor-pointer disabled:opacity-50"
       >
