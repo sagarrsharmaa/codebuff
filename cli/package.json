@@ -1,0 +1,26 @@
+{
+  "name": "codebuff-cli",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "codebuff": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts"
+  },
+  "dependencies": {
+    "commander": "^13.1.0",
+    "ora": "^8.2.0",
+    "open": "^10.1.0",
+    "ignore": "^7.0.4",
+    "conf": "^13.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "typescript": "^5",
+    "tsx": "^4"
+  }
+}

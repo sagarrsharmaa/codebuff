@@ -1,8 +1,10 @@
 'use client';
 
+import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { GitBranch, MessageCircle, Globe, Video, ArrowRight } from 'lucide-react';
+import { GitBranch, MessageCircle, Globe, Video, ArrowRight, CheckCircle, Loader2 } from 'lucide-react';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
+import { subscribeToNewsletter } from '@/lib/newsletter-actions';
 
 const footerLinks = {
   product: {
@@ -36,6 +38,84 @@ const footerLinks = {
     ],
   },
 };
+
+function NewsletterForm() {
+  const [email, setEmail] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState('');
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError('');
+    setIsLoading(true);
+
+    try {
+      const formData = new FormData();
+      formData.set('email', email);
+      formData.set('source', 'footer-newsletter');
+
+      const result = await subscribeToNewsletter(formData);
+
+      if (result.errors) {
+        setError(result.errors.email || result.errors.form || 'Something went wrong');
+      } else if (result.success) {
+        setSuccess(true);
+        setEmail('');
+        setTimeout(() => setSuccess(false), 5000);
+      }
+    } catch {
+      setError('Something went wrong. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  if (success) {
+    return (
+      <div className="flex items-center gap-2 text-accent-mint text-xs">
+        <CheckCircle className="w-3.5 h-3.5" />
+        <span>Subscribed! Check your inbox.</span>
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="relative flex items-center gap-2 max-w-xs">
+      <label htmlFor="footer-email" className="sr-only">
+        Subscribe to newsletter
+      </label>
+      <input
+        id="footer-email"
+        type="email"
+        placeholder="Your email"
+        value={email}
+        onChange={(e) => {
+          setEmail(e.target.value);
+          setError('');
+        }}
+        className="flex-1 glass rounded-full px-4 py-2 font-body text-xs text-text-primary placeholder:text-text-muted/60 outline-none focus:border-accent-purple/50 focus:bg-accent-purple/5 transition-colors duration-200 disabled:opacity-50"
+        required
+        disabled={isLoading}
+      />
+      <button
+        type="submit"
+        disabled={isLoading}
+        className="shrink-0 bg-accent-purple hover:brightness-110 text-text-inverse rounded-full p-2 transition-all duration-200 cursor-pointer disabled:opacity-50"
+        aria-label="Subscribe"
+      >
+        {isLoading ? (
+          <Loader2 className="w-4 h-4 animate-spin" />
+        ) : (
+          <ArrowRight className="w-4 h-4" />
+        )}
+      </button>
+      {error && (
+        <p className="absolute mt-10 text-xs text-red-400 max-w-48">{error}</p>
+      )}
+    </form>
+  );
+}
 
 const socialLinks = [
   { Icon: GitBranch, href: '#', label: 'GitHub' },
@@ -85,27 +165,7 @@ export function Footer() {
             </p>
 
             {/* Newsletter */}
-            <form
-              onSubmit={(e) => e.preventDefault()}
-              className="flex items-center gap-2 max-w-xs"
-            >
-              <label htmlFor="footer-email" className="sr-only">
-                Subscribe to newsletter
-              </label>
-              <input
-                id="footer-email"
-                type="email"
-                placeholder="Your email"
-                className="flex-1 glass rounded-full px-4 py-2 font-body text-xs text-text-primary placeholder:text-text-muted/60 outline-none focus:border-accent-purple/50 focus:bg-accent-purple/5 transition-colors duration-200"
-              />
-              <button
-                type="submit"
-                className="shrink-0 bg-accent-purple hover:brightness-110 text-text-inverse rounded-full p-2 transition-all duration-200 cursor-pointer"
-                aria-label="Subscribe"
-              >
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            </form>
+            <NewsletterForm />
           </div>
 
           {/* Link columns */}

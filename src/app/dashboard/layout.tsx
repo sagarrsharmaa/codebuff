@@ -2,7 +2,9 @@ import { auth } from '@/auth';
 import { redirect } from 'next/navigation';
 import { LayoutDashboard, Settings, LogOut } from 'lucide-react';
 import { signOut } from '@/auth';
+import { prisma } from '@/lib/prisma';
 import { DashboardNav } from '@/components/dashboard/DashboardNav';
+import { EmailVerificationBanner } from '@/components/dashboard/EmailVerificationBanner';
 
 export default async function DashboardLayout({
   children,
@@ -11,6 +13,12 @@ export default async function DashboardLayout({
 }) {
   const session = await auth();
   if (!session?.user) redirect('/login');
+
+  // Get user's email verification status
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { emailVerified: true, email: true },
+  });
 
   const navLinks = [
     { href: '/dashboard', icon: <LayoutDashboard className="w-4 h-4" />, label: 'Dashboard' },
@@ -48,6 +56,12 @@ export default async function DashboardLayout({
             </button>
           </form>
         }
+      />
+
+      {/* Email verification banner */}
+      <EmailVerificationBanner
+        emailVerified={user?.emailVerified ?? null}
+        email={user?.email ?? ''}
       />
 
       {/* Page content */}

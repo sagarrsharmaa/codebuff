@@ -30,6 +30,7 @@ model User {
   accounts     Account[]
   sessions     Session[]
   subscription Subscription?
+  deviceAuthorizations DeviceAuthorization[]
 }
 
 model Account {
@@ -79,6 +80,19 @@ model Subscription {
   updatedAt            DateTime           @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model DeviceAuthorization {
+  id           String   @id @default(cuid())
+  deviceCode   String   @unique
+  userCode     String   @unique
+  status       String   @default("pending") // pending | authorized | denied | expired
+  userId       String?
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user User? @relation(fields: [userId], references: [id])
 }
 
 model NewsletterSignup {

@@ -1,7 +1,9 @@
 'use server';
 
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
+import { sendWelcomeEmail, sendVerificationEmail } from '@/lib/email';
 
 interface SignupResult {
   errors?: Record<string, string>;
@@ -44,13 +46,38 @@ export async function signup(formData: FormData): Promise<SignupResult> {
   // Hash password and create user
   const hashedPassword = await bcrypt.hash(password, 12);
 
-  await prisma.user.create({
+  const user = await prisma.user.create({
     data: {
       email,
       name,
       hashedPassword,
     },
   });
+
+  // Send welcome email (fire-and-forget — don't block signup)
+  try {
+    await sendWelcomeEmail(email, name);
+  } catch (emailErr) {
+    console.error('Welcome email failed:', emailErr);
+  }
+
+  // Create and send verification email
+  try {
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const expires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+    await prisma.verificationToken.create({
+      data: {
+        identifier: email,
+        token: verificationToken,
+        expires,
+      },
+    });
+
+    await sendVerificationEmail(email, verificationToken);
+  } catch (emailErr) {
+    console.error('Verification email failed:', emailErr);
+  }
 
   return { success: true };
 }
